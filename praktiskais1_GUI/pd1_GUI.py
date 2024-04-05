@@ -309,6 +309,7 @@ class Game:
         new_row = row.copy()
 
         tree = self.generate_tree(depth, new_row)
+        # print(tree)
 
         return self.min_max(tree, True)
 
@@ -330,7 +331,7 @@ class Game:
             for index in range(len(tree)):
                 if type(tree[index]) == list:
                     tree[index] = self.min_max(tree[index], False)
-                    # TypeError: 'bool' object is not subscriptable
+                    
             return tree
 
         for index in range(len(tree)):
@@ -339,9 +340,9 @@ class Game:
 
         for index in range(len(tree) - 1):
             if tree[index] == tree[-1]:
-                return [tree[index], index]
+                return [tree[index][0], index]
 
-        return [not tree[-1], len(tree) - 1]
+        return [not tree[-1][0], len(tree) - 1]
 
     def generate_tree(self, depth: int, row: list, score: list = [0, 0]) -> list:
         """Generates tree (recursive function, tree is a list of lists, where the last element is the result of the game)
@@ -360,7 +361,7 @@ class Game:
 
         if depth == 0 or len(row) <= 1:
             result = score[0] > score[1]
-            return [result]
+            return [(result,row)]
 
         tree = []
 
@@ -422,4 +423,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
