@@ -2,6 +2,211 @@ from tkinter import *
 import random
 from tkinter import ttk
 import time
+import copy
+
+
+class GameState:
+    def __init__(self, numbers: list, scores: list, is_maximizing_player: bool):
+        """Initializes the game state
+
+        Args:
+            numbers (list): row of numbers
+            scores (list): scores of the players
+            is_maximizing_player (bool): True if it is the turn of computer, False if it is the turn of human
+        """
+        self.numbers = numbers
+        self.scores = scores
+        self.is_maximizing_player = is_maximizing_player
+        self.checked_nodes = 0
+
+    def get_possible_moves(self) -> list:
+        """Generates all possible moves
+
+        Returns:
+            list: list of all possible moves
+        """
+        moves = []
+        if len(self.numbers) > 1:
+            for i in range(len(self.numbers) - 1):
+                for j in range(i + 1, len(self.numbers)):
+                    if [i + 1, j + 1] in [
+                        [1, 2],
+                        [3, 4],
+                        [5, 6],
+                        [7, 8],
+                        [9, 10],
+                        [11, 12],
+                        [13, 14],
+                        [15, 16],
+                        [17, 18],
+                        [19, 20],
+                        [21, 22],
+                        [23, 24],
+                    ]:
+                        new_numbers = (
+                            self.numbers[:i]
+                            + [self.numbers[i] + self.numbers[j]]
+                            + self.numbers[i + 1 : j]
+                            + self.numbers[j + 1 :]
+                        )
+                        new_numbers = [
+                            (x - 1) % 6 + 1 if x > 6 else x for x in new_numbers
+                        ]
+                        moves.append(
+                            GameState(
+                                new_numbers,
+                                self.scores.copy(),
+                                not self.is_maximizing_player,
+                            )
+                        )
+            if len(self.numbers) % 2 != 0:
+                moves.append(
+                    GameState(
+                        self.numbers[:-1],
+                        self.scores.copy(),
+                        not self.is_maximizing_player,
+                    )
+                )
+        return moves
+
+    def is_terminal(self) -> bool:
+        """Checks if the state is terminal
+
+        Returns:
+            bool: True if the state is terminal, False otherwise
+        """
+        return len(self.numbers) == 1
+
+    def evaluate(self) -> int:
+        """Evaluates the state
+
+        Returns:
+            int: score of the state
+        """
+        return sum(self.scores)
+
+    def min_max(self, state: "GameState", depth: int) -> list:
+        """Min-Max algorithm
+
+        Args:
+            state (GameState): current state
+            depth (int): current depth
+
+        Returns:
+            list: (score, best_move)
+        """
+        if state.is_terminal() or depth == 0:
+            return [state.evaluate(), None]
+        if state.is_maximizing_player:
+            max_eval = float("-inf")
+            best_move = None
+            for move in state.get_possible_moves():
+                self.checked_nodes += 1  # Increment checked nodes count
+                eval, _ = self.min_max(move, depth - 1)
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
+            return [max_eval, best_move]
+        else:
+            min_eval = float("inf")
+            best_move = None
+            for move in state.get_possible_moves():
+                self.checked_nodes += 1  # Increment checked nodes count
+                eval, _ = self.min_max(move, depth - 1)
+                if eval < min_eval:
+                    min_eval = eval
+                    best_move = move
+            return [min_eval, best_move]
+
+    def alpha_beta(
+        self, state: "GameState", alpha: int, beta: int, depth: int
+    ) -> tuple:
+        """Alpha-Beta algorithm
+
+        Args:
+            state (GameState): current state
+            alpha (int):  minimum score that the maximizing player is assured of
+            beta (int): maximum score that the minimizing player is assured of
+            depth (int): current depth
+
+        Returns:
+            tuple: (score, best_move)
+                    score - score of the state
+                    best_move - best move
+        """
+        if state.is_terminal() or depth == 0:
+            return state.evaluate(), None
+        if state.is_maximizing_player:
+            max_eval = float("-inf")
+            best_move = None
+            for move in state.get_possible_moves():
+                self.checked_nodes += 1  # Increment checked nodes count
+                eval, _ = self.alpha_beta(move, alpha, beta, depth - 1)
+                if eval > max_eval:
+                    max_eval = eval
+                    best_move = move
+                alpha = max(alpha, eval)
+                if beta <= alpha:
+                    break
+            return max_eval, best_move
+        else:
+            min_eval = float("inf")
+            best_move = None
+            for move in state.get_possible_moves():
+                self.checked_nodes += 1  # Increment checked nodes count
+                eval, _ = self.alpha_beta(move, alpha, beta, depth - 1)
+                if eval < min_eval:
+                    min_eval = eval
+                    best_move = move
+                beta = min(beta, eval)
+                if beta <= alpha:
+                    break
+            return min_eval, best_move
+
+    def generate_min_max(self, numbers: list, scores: list, max_depth: int) -> list:
+        """Generates the best move using Min-Max
+
+        Args:
+            numbers (list): row of numbers
+            scores (list): scores of the players
+            max_depth (int): maximum depth
+
+        Returns:
+            list: best move
+        """
+        initial_state = GameState(numbers, scores, True)
+        self.checked_nodes = 0  # Reset checked nodes count
+        result = self.min_max(initial_state, max_depth)
+        if result[1] is not None:
+            for i in range(len(numbers)):
+                if numbers[i] != result[1].numbers[i]:
+                    return [True, i]
+        else:
+            return [False, None]
+
+    def generate_alpha_beta(self, numbers: list, scores: list, max_depth: int) -> list:
+        """Generates the best move using Alpha-Beta
+
+        Args:
+            numbers (list): row of numbers
+            scores (list): scores of the players
+            max_depth (int): maximum depth
+
+        Returns:
+            list: best move
+        """
+        initial_state = GameState(numbers, scores, True)
+        self.checked_nodes = 0  # Reset checked nodes count
+        result = self.alpha_beta(initial_state, float("-inf"), float("inf"), max_depth)
+        if result[1] is not None:
+            for i in range(len(numbers)):
+                try:
+                    if numbers[i] != result[1].numbers[i]:
+                        return [True, i]
+                except:
+                    return [True, i]
+        else:
+            return [False, None]
 
 
 class Game:
@@ -193,20 +398,7 @@ class Game:
         number1 = self.numberRow.pop(index + 1)
         number2 = self.numberRow.pop(index)
         sum = number1 + number2
-        new_number = sum
-        if sum > 6:
-            if sum == 7:
-                new_number = 1
-            elif sum == 8:
-                new_number = 2
-            elif sum == 9:
-                new_number = 3
-            elif sum == 10:
-                new_number = 4
-            elif sum == 11:
-                new_number = 5
-            elif sum == 12:
-                new_number = 6
+        new_number = self.pairs[sum]
         self.numberRow.insert(index, new_number)
         self.lbl_row.config(text=" ".join(map(str, self.numberRow)))
         return new_number
@@ -222,22 +414,29 @@ class Game:
             self.game_end()
 
     def computer_turn(self):
+        
         self.root.update()
         time.sleep(1)
+        game_state = GameState(
+            self.numberRow, [self.humanScore, self.computerScore], True
+        )
+        scores = [self.humanScore, self.computerScore]
         if not self.alpha_beta:
-            result = self.generate_min_max(2, self.numberRow)
+            result = game_state.generate_min_max(self.numberRow, scores, 2)
+            if hasattr(game_state, "checked_nodes"):
+                print("Number of checked nodes:", game_state.checked_nodes)
             if result[0]:
                 self.computer_turn_sum(result[1])
             else:
                 self.computer_turn_erase()
         else:
-            choice = random.randint(0, 1)
-            if choice == 0:
-                self.computer_turn_sum()
+            result = game_state.generate_alpha_beta(self.numberRow, scores, 2)
+            if hasattr(game_state, "checked_nodes"):
+                print("Number of checked nodes:", game_state.checked_nodes)
+            if result[0]:
+                self.computer_turn_sum(result[1])
             else:
                 self.computer_turn_erase()
-
-        length = len(self.numberRow)
 
     def computer_turn_sum(self, index=None):
         length = len(self.numberRow)
@@ -295,127 +494,6 @@ class Game:
             self.lbl_game_result.config(text="Tie!", fg="green")
             self.lbl_game_result.place(relx=0.5, rely=0.4, anchor=CENTER)
 
-    def generate_min_max(self, depth: int, row) -> list[bool, int]:
-        """Generates decision based on Min-Max algorithm
-
-        Args:
-            depth (int): max depth of the tree
-
-        Returns:
-            list[bool,int,int]: 1. True - sum, False - erase
-                                2. which pair to sum or erase
-
-        """
-        new_row = row.copy()
-
-        tree = self.generate_tree(depth, new_row)
-        # print(tree)
-
-        return self.min_max(tree, True)
-
-    def min_max(self, tree: list, root: bool = False) -> list[bool, int]:
-        """Recursive Min-Max algorithm (flattens the tree and returns the best decision)
-
-        Args:
-            tree (list): tree
-            root (bool, optional): True if it is the root of the tree. Defaults to False.
-
-        Returns:
-            list[bool,int]: 1. True - sum, False - erase
-                            2. which pair to sum or erase
-        """
-
-        if not root:
-            if len(tree) == 1:
-                return tree[0]
-            for index in range(len(tree)):
-                if type(tree[index]) == list:
-                    tree[index] = self.min_max(tree[index], False)
-                    
-            return tree
-
-        for index in range(len(tree)):
-            if type(tree[index]) == list:
-                tree[index] = self.min_max(tree[index], False)
-
-        for index in range(len(tree) - 1):
-            if tree[index] == tree[-1]:
-                return [tree[index][0], index]
-
-        return [not tree[-1][0], len(tree) - 1]
-
-    def generate_tree(self, depth: int, row: list, score: list = [0, 0]) -> list:
-        """Generates tree (recursive function, tree is a list of lists, where the last element is the result of the game)
-        (structure of the tree: sum terns are in the first half of the list, erase terns are in the second half of the list, the last element is the result of the game)
-        TODO: find a way to get rid of duplicates
-
-        Args:
-            depth (int): max depth of the tree
-            row (list): number row
-            score (list, optional): score of the game. Defaults to [0,0].
-
-        Returns:
-            list: tree
-        """
-        score = score.copy()
-
-        if depth == 0 or len(row) <= 1:
-            result = score[0] > score[1]
-            return [(result,row)]
-
-        tree = []
-
-        # sum (generates branches for all possible sums)
-
-        for index in range(0, len(row), 2):
-            new_row = []
-            for new_index in range(0, len(row) - 1):
-                if new_index != index:
-                    new_row.append(row[new_index])
-                else:
-                    new_row.append(row[new_index] + row[new_index + 1])
-                    new_row[-1] = self.pairs[new_row[-1]]
-                    score[0] += (
-                        1
-                        if new_row[-1] == 1 or new_row[-1] == 2 or new_row[-1] == 3
-                        else 2
-                    )
-            branch = self.generate_tree(depth - 1, new_row, score)
-            tree.append(branch)
-
-        # erase
-
-        new_row = [row[i] for i in range(len(row) - 1)]
-        score[1] -= 1
-        branch = self.generate_tree(depth - 1, new_row, score)
-        tree.append(branch)
-
-        return tree
-
-    def generate_alpha_beta(self, depth: int, row) -> list[bool, int]:
-        """Generates decision based on Alpha-Beta algorithm
-
-        Args:
-            depth (int): max depth of the tree
-
-        Returns:
-            list[bool,int,int]: 1. True - sum, False - erase
-                                2. which pair to sum or erase
-
-        """
-        new_row = row.copy()
-
-        tree = self.generate_tree(depth, new_row)
-
-        return self.alpha_beta_algorithm(tree, True)
-
-    def alpha_beta_algorithm(
-        self, tree: list, root: bool = False, alpha: int = -1000, beta: int = 1000
-    ) -> list[bool, int]:
-        pass
-
-    # TODO: implement alpha-beta algorithm
-
 
 def main():
     Game()
@@ -423,5 +501,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
