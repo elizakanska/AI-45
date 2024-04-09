@@ -18,6 +18,7 @@ class GameState:
         self.scores = scores
         self.is_maximizing_player = is_maximizing_player
         self.checked_nodes = 0
+        self.execution_time = 0
 
     def get_possible_moves(self) -> list:
         """Generates all possible moves
@@ -177,7 +178,10 @@ class GameState:
         """
         initial_state = GameState(numbers, scores, True)
         self.checked_nodes = 0  # Reset checked nodes count
+        start_time = time.time()
         result = self.min_max(initial_state, max_depth)
+        end_time = time.time()
+        self.execution_time = end_time - start_time
         if result[1] is not None:
             for i in range(len(numbers)):
                 if numbers[i] != result[1].numbers[i]:
@@ -198,7 +202,10 @@ class GameState:
         """
         initial_state = GameState(numbers, scores, True)
         self.checked_nodes = 0  # Reset checked nodes count
+        start_time = time.time()
         result = self.alpha_beta(initial_state, float("-inf"), float("inf"), max_depth)
+        end_time = time.time()
+        self.execution_time = end_time - start_time
         if result[1] is not None:
             for i in range(len(numbers)):
                 try:
@@ -426,6 +433,7 @@ class Game:
             result = game_state.generate_min_max(self.numberRow, scores, 2)
             if hasattr(game_state, "checked_nodes"):
                 print("Number of checked nodes:", game_state.checked_nodes)
+                print("Execution time:", game_state.execution_time)
             if result[0]:
                 self.computer_turn_sum(result[1])
             else:
@@ -434,6 +442,7 @@ class Game:
             result = game_state.generate_alpha_beta(self.numberRow, scores, 2)
             if hasattr(game_state, "checked_nodes"):
                 print("Number of checked nodes:", game_state.checked_nodes)
+                print("Execution time:", game_state.execution_time)
             if result[0]:
                 self.computer_turn_sum(result[1])
             else:
