@@ -2,13 +2,12 @@ from tkinter import *
 import random
 from tkinter import ttk
 import time
-import copy
 
 
 class GameState:
     def __init__(self, numbers: list, scores: list, is_maximizing_player: bool):
         """Initializes the game state
-
+        
         Args:
             numbers (list): row of numbers
             scores (list): scores of the players
@@ -22,6 +21,7 @@ class GameState:
 
     def get_possible_moves(self) -> list:
         """Generates all possible moves
+        
 
         Returns:
             list: list of all possible moves
@@ -182,9 +182,13 @@ class GameState:
         result = self.min_max(initial_state, max_depth)
         end_time = time.time()
         self.execution_time = end_time - start_time
+        
         if result[1] is not None:
             for i in range(len(numbers)):
-                if numbers[i] != result[1].numbers[i]:
+                try:
+                    if numbers[i] != result[1].numbers[i]:
+                        return [True, i]
+                except:
                     return [True, i]
         else:
             return [False, None]
@@ -511,4 +515,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
