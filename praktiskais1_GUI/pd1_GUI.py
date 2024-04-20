@@ -193,7 +193,7 @@ class GameState:
                     print(result[1].numbers)
                     print(numbers)
                     print(i)
-                    if self.is_terminal():
+                    if i*2 > len(numbers):
                         return [True, 0]
                     return [True, i]
         else:
@@ -222,7 +222,7 @@ class GameState:
                     if numbers[i] != result[1].numbers[i]:
                         return [True, i]
                 except:
-                    if self.is_terminal():
+                    if i*2 > len(numbers):
                         return [True, 0]
                     return [True, i]
         else:
@@ -465,10 +465,12 @@ class Game:
 
     def computer_turn_sum(self, index=None):
         
-        print(index)
+        
+
         length = len(self.numberRow)
         if index is None:
             index = random.randint(0, int((length - 2) / 2)) * 2
+        print(index)
         new_number = self.sum_pair(index)
         if new_number == 1 or new_number == 2 or new_number == 3:
             self.computerScore += 1
