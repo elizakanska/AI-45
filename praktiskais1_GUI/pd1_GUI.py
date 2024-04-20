@@ -189,6 +189,10 @@ class GameState:
                     if numbers[i] != result[1].numbers[i]:
                         return [True, i]
                 except:
+                    print("Exception")
+                    print(result[1].numbers)
+                    print(numbers)
+                    print(i)
                     return [True, i]
         else:
             return [False, None]
@@ -426,20 +430,22 @@ class Game:
             self.game_end()
 
     def computer_turn(self):
-        
         self.root.update()
         time.sleep(1)
         game_state = GameState(
             self.numberRow, [self.humanScore, self.computerScore], True
         )
+        print(game_state.numbers)
+        print(game_state.scores)
         scores = [self.humanScore, self.computerScore]
         if not self.alpha_beta:
             result = game_state.generate_min_max(self.numberRow, scores, 2)
             if hasattr(game_state, "checked_nodes"):
                 print("Number of checked nodes:", game_state.checked_nodes)
                 print("Execution time:", game_state.execution_time)
+                print("Result:", result)
             if result[0]:
-                self.computer_turn_sum(result[1])
+                self.computer_turn_sum(result[1]*2)
             else:
                 self.computer_turn_erase()
         else:
@@ -447,12 +453,15 @@ class Game:
             if hasattr(game_state, "checked_nodes"):
                 print("Number of checked nodes:", game_state.checked_nodes)
                 print("Execution time:", game_state.execution_time)
+                print("Result:", result)
             if result[0]:
-                self.computer_turn_sum(result[1])
+                self.computer_turn_sum(result[1]*2)
             else:
                 self.computer_turn_erase()
 
     def computer_turn_sum(self, index=None):
+        
+        print(index)
         length = len(self.numberRow)
         if index is None:
             index = random.randint(0, int((length - 2) / 2)) * 2
