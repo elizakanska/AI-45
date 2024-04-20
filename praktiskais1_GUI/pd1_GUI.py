@@ -193,6 +193,8 @@ class GameState:
                     print(result[1].numbers)
                     print(numbers)
                     print(i)
+                    if self.is_terminal():
+                        return [True, 0]
                     return [True, i]
         else:
             return [False, None]
@@ -220,6 +222,8 @@ class GameState:
                     if numbers[i] != result[1].numbers[i]:
                         return [True, i]
                 except:
+                    if self.is_terminal():
+                        return [True, 0]
                     return [True, i]
         else:
             return [False, None]
