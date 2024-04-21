@@ -90,6 +90,9 @@ class GameState:
         Returns:
             int: score of the state
         """
+        print(sum(self.scores))
+        print(self.scores)
+        print(self.numbers)
         return sum(self.scores)
 
     def min_max(self, state: "GameState", depth: int) -> list:
@@ -104,10 +107,12 @@ class GameState:
         """
         if state.is_terminal() or depth == 0:
             return [state.evaluate(), None]
+        moves = state.get_possible_moves()
         if state.is_maximizing_player:
             max_eval = float("-inf")
             best_move = None
-            for move in state.get_possible_moves():
+            
+            for move in moves:
                 self.checked_nodes += 1  # Increment checked nodes count
                 eval, _ = self.min_max(move, depth - 1)
                 if eval > max_eval:
@@ -117,7 +122,7 @@ class GameState:
         else:
             min_eval = float("inf")
             best_move = None
-            for move in state.get_possible_moves():
+            for move in moves:
                 self.checked_nodes += 1  # Increment checked nodes count
                 eval, _ = self.min_max(move, depth - 1)
                 if eval < min_eval:
@@ -143,10 +148,11 @@ class GameState:
         """
         if state.is_terminal() or depth == 0:
             return state.evaluate(), None
+        moves = state.get_possible_moves()
         if state.is_maximizing_player:
             max_eval = float("-inf")
             best_move = None
-            for move in state.get_possible_moves():
+            for move in moves:
                 self.checked_nodes += 1  # Increment checked nodes count
                 eval, _ = self.alpha_beta(move, alpha, beta, depth - 1)
                 if eval > max_eval:
@@ -159,7 +165,7 @@ class GameState:
         else:
             min_eval = float("inf")
             best_move = None
-            for move in state.get_possible_moves():
+            for move in moves:
                 self.checked_nodes += 1  # Increment checked nodes count
                 eval, _ = self.alpha_beta(move, alpha, beta, depth - 1)
                 if eval < min_eval:
@@ -226,12 +232,14 @@ class GameState:
         if result[1] is not None:
             for i in range(len(result[1].numbers)):
                 try:
-                    # print(result[1].numbers)
-                    # print(numbers[i])
+                    print(result[1].numbers)
+                    print(numbers)
                     for j in range(len(result[1].numbers[i])):
-                        # print(result[1].numbers[i][j])
-                        # print(numbers[i][j])
+                        print(result[1].numbers[i][j])
+                        print(numbers[i][j])
                         if numbers[j] != result[1].numbers[i][j]:
+                            print(result[1].numbers[i][j])
+                            print(numbers[i][j])
                             return [True, i]
                 except:
                     if i*2 > len(numbers):
@@ -367,7 +375,7 @@ class Game:
         if not row_length.isdigit():
             pass
         else:
-            new_array = [random.randint(1, 6) for _ in range(int(row_length))]#[2,6,6,2,3][2,5,5,2,3,1,6,6,2,5,1,3,3,2,3] arrays for testing
+            new_array =[random.randint(1, 6) for _ in range(int(row_length))] #[2,6,2,2,3]#[2,6,6,2,3][2,5,5,2,3,1,6,6,2,5,1,3,3,2,3] arrays for testing
             self.numberRow = new_array
             self.lbl_row.config(text=" ".join(map(str, self.numberRow)))
             self.lbl_row.place(relx=0.5, rely=0.4, anchor=CENTER)
