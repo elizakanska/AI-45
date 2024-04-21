@@ -90,10 +90,8 @@ class GameState:
         Returns:
             int: score of the state
         """
-        print(sum(self.scores))
-        print(self.scores)
-        print(self.numbers)
-        return sum(self.scores)
+        
+        return self.scores[1] - self.scores[0]	
 
     def min_max(self, state: "GameState", depth: int) -> list:
         """Min-Max algorithm
