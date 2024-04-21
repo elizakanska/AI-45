@@ -54,10 +54,15 @@ class GameState:
                         new_numbers = [
                             (x - 1) % 6 + 1 if x > 6 else x for x in new_numbers
                         ]
+                        new_scores = self.scores.copy()
+                        if self.numbers[i] + self.numbers[j] in [1, 2, 3]:
+                            new_scores[int(self.is_maximizing_player)] += 1
+                        else:
+                            new_scores[int(self.is_maximizing_player)] += 2
                         moves.append(
                             GameState(
                                 new_numbers,
-                                self.scores.copy(),
+                                new_scores,
                                 not self.is_maximizing_player,
                             )
                         )
@@ -182,17 +187,17 @@ class GameState:
         result = self.min_max(initial_state, max_depth)
         end_time = time.time()
         self.execution_time = end_time - start_time
-        
         if result[1] is not None:
-            for i in range(len(numbers)):
+            for i in range(len(result[1].numbers)):
                 try:
-                    if numbers[i] != result[1].numbers[i]:
-                        return [True, i]
+                    for j in range(len(result[1].numbers[i])):
+                        if numbers[j] != result[1].numbers[i][j]:
+                            return [True, i]
                 except:
-                    print("Exception")
-                    print(result[1].numbers)
-                    print(numbers)
-                    print(i)
+                    # print("Exception") # Exception for the last move
+                    # print(result[1].numbers)
+                    # print(numbers)
+                    # print(i)
                     if i*2 > len(numbers):
                         return [True, 0]
                     return [True, i]
@@ -216,11 +221,18 @@ class GameState:
         result = self.alpha_beta(initial_state, float("-inf"), float("inf"), max_depth)
         end_time = time.time()
         self.execution_time = end_time - start_time
+        #print(result[1].numbers) for debugging
+        #print(numbers)
         if result[1] is not None:
-            for i in range(len(numbers)):
+            for i in range(len(result[1].numbers)):
                 try:
-                    if numbers[i] != result[1].numbers[i]:
-                        return [True, i]
+                    # print(result[1].numbers)
+                    # print(numbers[i])
+                    for j in range(len(result[1].numbers[i])):
+                        # print(result[1].numbers[i][j])
+                        # print(numbers[i][j])
+                        if numbers[j] != result[1].numbers[i][j]:
+                            return [True, i]
                 except:
                     if i*2 > len(numbers):
                         return [True, 0]
@@ -355,7 +367,7 @@ class Game:
         if not row_length.isdigit():
             pass
         else:
-            new_array = [random.randint(1, 6) for _ in range(int(row_length))]
+            new_array = [random.randint(1, 6) for _ in range(int(row_length))]#[2,6,6,2,3][2,5,5,2,3,1,6,6,2,5,1,3,3,2,3] arrays for testing
             self.numberRow = new_array
             self.lbl_row.config(text=" ".join(map(str, self.numberRow)))
             self.lbl_row.place(relx=0.5, rely=0.4, anchor=CENTER)
