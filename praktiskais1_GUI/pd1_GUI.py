@@ -91,7 +91,7 @@ class GameState:
             int: score of the state
         """
         
-        return abs(self.scores[1] - self.scores[0])
+        return sum(self.scores)
 
     def min_max(self, state: "GameState", depth: int) -> list:
         """Min-Max algorithm
