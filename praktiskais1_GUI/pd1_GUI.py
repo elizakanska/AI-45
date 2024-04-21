@@ -149,11 +149,6 @@ class Game_tree:
         """
         evaluation = 0
 
-        for node in self.node_set:
-            print("Node", node.id)
-            print(node.row)
-            print(state.numbers)
-
 
         for node in self.node_set:
             if (
@@ -161,8 +156,14 @@ class Game_tree:
                 and node.p1 == state.scores[0]
                 and node.p2 == state.scores[1]
             ):
-                evaluation += node.hnf
-        print("Evaluation:", evaluation)
+                if node.hnf == 0:
+                    node.hnf=state.scores[0]-state.scores[1]
+                if state.is_maximizing_player:
+                    evaluation = node.hnf if evaluation < node.hnf else evaluation
+                else:
+                    evaluation = node.hnf if evaluation > node.hnf else evaluation
+
+                     
         return evaluation
 
     def add_node(self, node: Node):
@@ -172,6 +173,100 @@ class Game_tree:
         self.branch_set[beginNode_id] = self.branch_set.get(beginNode_id, []) + [
             endNode_id
         ]
+        
+    def assign_id(self):
+        global node_counter
+        id_new = "N" + str(node_counter)
+        node_counter += 1
+        return id_new
+    
+    def check_duplicate(
+        self,
+        new_node,
+        curr_node,
+        # gen_nodes,
+        id_new,
+        row_new,
+        p1_new,
+        p2_new,
+        level_new,
+        hnf_new,
+    ):
+        same_node_check = False
+        j = 0
+        while (not same_node_check) and (j < len(self.node_set)):
+            if (
+                (self.node_set[j].row == new_node.row)
+                and (self.node_set[j].p1 == new_node.p1)
+                and (self.node_set[j].p2 == new_node.p2)
+                and (self.node_set[j].level == new_node.level)
+                and (self.node_set[j].hnf == new_node.hnf)
+            ):
+                same_node_check = True
+            else:
+                j += 1
+        if not same_node_check:
+            self.add_node(new_node)
+            # gen_nodes.append(Node(id_new, row_new, p1_new, p2_new, level_new, hnf_new))
+            self.add_branch(curr_node.id, id_new)
+        else:
+            self.add_branch(curr_node.id, self.node_set[j].id)
+
+
+    def generate_moves(self, node:Node,state:GameState, curr_length):
+        moves = []
+        # placeholder=[]
+        if curr_length > 1:
+            iter_length = curr_length
+            if curr_length % 2 == 1:
+                iter_length -= 1
+            for i in range(0, iter_length, 2):
+                row_new = deepcopy(node.row)
+                number1 = row_new.pop(i + 1)
+                number2 = row_new.pop(i)
+                sum_ = number1 + number2
+                number_new = pairs.get(sum_)
+                row_new.insert(i, number_new)
+                plus_points = 1
+                if number_new == 4 or number_new == 5 or number_new == 6:
+                    plus_points = 2
+                f1 = plus_points
+                if curr_length % 2 == 0:
+                    p1_new = state.scores[0] + f1
+                    p2_new = state.scores[1]
+                else:
+                    p1_new = state.scores[0]
+                    p2_new = state.scores[1] + f1
+                level_new = state.is_maximizing_player != state.is_maximizing_player
+                new_state = GameState(row_new, [p1_new, p2_new], level_new)
+                new_node = Node("N" + str(len(self.node_set) + 1), row_new, p1_new, p2_new, level_new, 0)
+                self.check_duplicate(new_node, node, new_node.id, row_new, p1_new, p2_new, level_new, 0)
+                moves.append([new_node, new_state])
+
+        if curr_length > 1 and curr_length % 2 == 1:
+            row_new = deepcopy(state.numbers)
+            row_new.pop()
+            if (
+                state.is_maximizing_player
+                and state.is_maximizing_player == (state.scores[0] > state.scores[1])
+            ) or (
+                not state.is_maximizing_player
+                and state.is_maximizing_player == (state.scores[0] < state.scores[1])
+            ):
+                p1_new = state.scores[0] - 1
+                p2_new = state.scores[1]
+            else:
+                p1_new = state.scores[0]
+                p2_new = state.scores[1] - 1
+            level_new = state.is_maximizing_player != state.is_maximizing_player
+            new_state = GameState(row_new, [p1_new, p2_new], level_new)
+            # print(new_state.numbers)
+            # print(new_state.scores)
+            new_node = Node("N" + str(len(self.node_set) + 1), row_new, p1_new, p2_new, level_new, 0)
+            self.check_duplicate(new_node, node, new_node.id, row_new, p1_new, p2_new, level_new, 0)
+            moves.append([new_node, new_state])
+    
+        return moves
 
     def min_max(self, node: Node, state:GameState,depth: int) -> list:
         """Min-Max algorithm
@@ -185,14 +280,14 @@ class Game_tree:
             list: (score, best_move)
         """
         if self.is_terminal(node.row) or depth == 0:
-            return [self.evaluate(node), None]
+            return [self.evaluate(state), None]
         moves=self.generate_moves(node,state, len(state.numbers))
         if state.is_maximizing_player:
             max_eval = float("-inf")
             best_move = None
 
             for move in moves:
-                state.checked_nodes += 1  # Increment checked nodes count
+                state.checked_nodes += 1 
                 eval, _ = self.min_max(move[0], move[1], depth - 1)
                 if eval > max_eval:
                     max_eval = eval
@@ -202,7 +297,7 @@ class Game_tree:
             min_eval = float("inf")
             best_move = None
             for move in moves:
-                state.checked_nodes += 1  # Increment checked nodes count
+                state.checked_nodes += 1  
                 eval, _ = self.min_max(move[0], move[1], depth - 1)
                 if eval < min_eval:
                     min_eval = eval
@@ -226,16 +321,14 @@ class Game_tree:
                     score - score of the state
                     best_move - best move
         """
-        print("Depth:", depth)
         if self.is_terminal(node.row) or depth == 0:
             return [self.evaluate(state), None]
-        print("Depth:", depth)
         moves=self.generate_moves(node,state, len(state.numbers))
         if state.is_maximizing_player:
             max_eval = float("-inf")
             best_move = None
             for move in moves:
-                state.checked_nodes += 1  # Increment checked nodes count
+                state.checked_nodes += 1 
                 eval, _ = self.alpha_beta(move[0], move[1], alpha, beta, depth - 1)
                 if eval > max_eval:
                     max_eval = eval
@@ -248,7 +341,7 @@ class Game_tree:
             min_eval = float("inf")
             best_move = None
             for move in moves:
-                state.checked_nodes += 1  # Increment checked nodes count
+                state.checked_nodes += 1  
                 eval, _ = self.alpha_beta(move[0], move[1], alpha, beta, depth - 1)
                 if eval < min_eval:
                     min_eval = eval
@@ -258,120 +351,14 @@ class Game_tree:
                     break
             return min_eval, best_move
 
-    def generate_moves(self, node:Node,state:GameState, curr_length):
-        moves = []
-        if curr_length > 1:
-            iter_length = curr_length
-            if curr_length % 2 == 1:
-                iter_length -= 1
-            for i in range(0, iter_length, 2):
-                row_new = deepcopy(node.row)
-                number1 = row_new.pop(i + 1)
-                number2 = row_new.pop(i)
-                sum_ = number1 + number2
-                number_new = pairs.get(sum_)
-                row_new.insert(i, number_new)
-                plus_points = 1
-                if number_new == 4 or number_new == 5 or number_new == 6:
-                    plus_points = 2
-                f1 = plus_points
-                if (
-                    state.is_maximizing_player
-                    and state.is_maximizing_player
-                    == (state.scores[0] > state.scores[1])
-                ) or (
-                    not state.is_maximizing_player
-                    and state.is_maximizing_player
-                    == (state.scores[0] < state.scores[1])
-                ):
-                    p1_new = state.scores[0] + plus_points
-                    p2_new = state.scores[1]
-                else:
-                    p1_new = state.scores[0]
-                    p2_new = state.scores[1] + plus_points
-                level_new = state.is_maximizing_player != state.is_maximizing_player
-                new_state = GameState(row_new, [p1_new, p2_new], level_new)
-                moves.append([Node("N" + str(len(self.node_set) + 1), row_new, p1_new, p2_new, level_new, f1), new_state])
 
-        if curr_length > 1 and curr_length % 2 == 1:
-            row_new = deepcopy(state.numbers)
-            row_new.pop()
-            if (
-                state.is_maximizing_player
-                and state.is_maximizing_player == (state.scores[0] > state.scores[1])
-            ) or (
-                not state.is_maximizing_player
-                and state.is_maximizing_player == (state.scores[0] < state.scores[1])
-            ):
-                p1_new = state.scores[0] - 1
-                p2_new = state.scores[1]
-            else:
-                p1_new = state.scores[0]
-                p2_new = state.scores[1] - 1
-            level_new = state.is_maximizing_player != state.is_maximizing_player
-            new_state = GameState(row_new, [p1_new, p2_new], level_new)
-            # print(new_state.numbers)
-            # print(new_state.scores)
-            moves.append([Node("N" + str(len(self.node_set) + 1), row_new, p1_new, p2_new, level_new, 0), new_state])
-        
-        self.generate_nodes(moves, node)
-        
-        return moves
         
         
         
-    def generate_nodes(self, moves: list, node: Node):
-        placeholder = []
-        for move in moves:
-            self.check_duplicate(
-                move[0],
-                node,
-                placeholder,
-                move[0].id,
-                move[0].row,
-                move[0].p1,
-                move[0].p2,
-                move[0].level,
-                move[0].hnf,
-            )
             
 
-    def assign_id(self):
-        id_new = "N" + str(len(self.node_set) + 1)
-        return id_new
 
-    def check_duplicate(
-        self,
-        new_node,
-        curr_node,
-        gen_nodes,
-        id_new,
-        row_new,
-        p1_new,
-        p2_new,
-        level_new,
-        hnf_new,
-    ):
-        same_node_check = False
-        j = 0
-        while (not same_node_check) and (j < len(self.node_set)):
-            if (
-                (self.node_set[j].row == new_node.row)
-                and (self.node_set[j].p1 == new_node.p1)
-                and (self.node_set[j].p2 == new_node.p2)
-                and (self.node_set[j].level == new_node.level)
-                and (self.node_set[j].hnf == new_node.hnf)
-            ):
-                same_node_check = True
-            else:
-                j += 1
-        if not same_node_check:
-            self.add_node(new_node)
-            gen_nodes.append(Node(id_new, row_new, p1_new, p2_new, level_new, hnf_new))
-            self.add_branch(curr_node.id, id_new)
-        else:
-            self.add_branch(curr_node.id, self.node_set[j].id)
-
+   
 
 class Game:
     def __init__(self):
@@ -486,13 +473,7 @@ class Game:
         if not row_length.isdigit():
             pass
         else:
-            new_array = [
-                2,
-                6,
-                2,
-                2,
-                3,
-            ]  # [random.randint(1, 6) for _ in range(int(row_length))] #[2,6,2,2,3]#[2,6,6,2,3][2,5,5,2,3,1,6,6,2,5,1,3,3,2,3] arrays for testing
+            new_array = [random.randint(1, 6) for _ in range(int(row_length))] # [random.randint(1, 6) for _ in range(int(row_length))] #[2,6,2,2,3]#[2,6,6,2,3][2,5,5,2,3,1,6,6,2,5,1,3,3,2,3] arrays for testing
             self.numberRow = new_array
             self.lbl_row.config(text=" ".join(map(str, self.numberRow)))
             self.lbl_row.place(relx=0.5, rely=0.4, anchor=CENTER)
@@ -579,9 +560,9 @@ class Game:
         # print(game_state.numbers)
         # print(game_state.scores)
         if not self.alpha_beta:
-            result = game_state.generate_min_max(2)  # Only pass max depth
+            result = game_state.generate_min_max(2)  
         else:
-            result = game_state.generate_alpha_beta(2)  # Only pass max depth
+            result = game_state.generate_alpha_beta(2) 
         if hasattr(game_state, "checked_nodes"):
             print("Number of checked nodes:", game_state.checked_nodes)
             print("Execution time:", game_state.execution_time)
