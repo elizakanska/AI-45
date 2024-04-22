@@ -2,31 +2,12 @@ from tkinter import *
 import random
 from tkinter import ttk
 import time
-from copy import deepcopy
-
-
-pairs = {
-    1: 1,
-    2: 2,
-    3: 3,
-    4: 4,
-    5: 5,
-    6: 6,
-    7: 1,
-    8: 2,
-    9: 3,
-    10: 4,
-    11: 5,
-    12: 6,
-}
 
 
 class GameState:
-    def __init__(
-        self, numbers: list, scores: list, is_maximizing_player: bool, game_tree=None
-    ):
+    def __init__(self, numbers: list, scores: list, is_maximizing_player: bool):
         """Initializes the game state
-
+        
         Args:
             numbers (list): row of numbers
             scores (list): scores of the players
@@ -37,258 +18,101 @@ class GameState:
         self.is_maximizing_player = is_maximizing_player
         self.checked_nodes = 0
         self.execution_time = 0
-        if game_tree is not None:
-            self.game_tree = game_tree
-        else:
-            self.game_tree = Game_tree()
-            self.game_tree.add_node(
-                Node("N1", self.numbers, self.scores[0], self.scores[1], 1, 0)
-            )
 
-    def generate_min_max(self, max_depth: int) -> list:
-        """Generates the best move using Min-Max
-
-        Args:
-            max_depth (int): maximum depth
+    def get_possible_moves(self) -> list:
+        """Generates all possible moves
+        
 
         Returns:
-            list: best move
+            list: list of all possible moves
         """
-        initial_node = self.game_tree.node_set[0]
-        initial_state = self
-        self.checked_nodes = 0 
+        moves = []
+        if len(self.numbers) > 1:
+            for i in range(len(self.numbers) - 1):
+                for j in range(i + 1, len(self.numbers)):
+                    if [i + 1, j + 1] in [
+                        [1, 2],
+                        [3, 4],
+                        [5, 6],
+                        [7, 8],
+                        [9, 10],
+                        [11, 12],
+                        [13, 14],
+                        [15, 16],
+                        [17, 18],
+                        [19, 20],
+                        [21, 22],
+                        [23, 24],
+                        [25,26]
+                    ]:
+                        new_numbers = (
+                            self.numbers[:i]
+                            + [self.numbers[i] + self.numbers[j]]
+                            + self.numbers[i + 1 : j]
+                            + self.numbers[j + 1 :]
+                        )
+                        new_numbers = [
+                            (x - 1) % 6 + 1 if x > 6 else x for x in new_numbers
+                        ]
+                        new_scores = self.scores.copy()
+                        if self.numbers[i] + self.numbers[j] in [1, 2, 3]:
+                            new_scores[int(self.is_maximizing_player)] += 1
+                        else:
+                            new_scores[int(self.is_maximizing_player)] += 2
+                        moves.append(
+                            GameState(
+                                new_numbers,
+                                new_scores,
+                                not self.is_maximizing_player,
+                            )
+                        )
+            if len(self.numbers) % 2 != 0:
+                moves.append(
+                    GameState(
+                        self.numbers[:-1],
+                        self.scores.copy(),
+                        not self.is_maximizing_player,
+                    )
+                )
+        return moves
 
-        start = time.time()
-
-        result = self.game_tree.min_max(initial_node, initial_state, max_depth)[1]
-
-        self.execution_time = time.time() - start
-
-        if not result[1] is None:
-            for i in range(len(result[1].numbers)):
-                try:
-                    for j in range(len(result[1].numbers[i])):
-                        if self.numbers[j] != result[1].numbers[i][j]:
-                            return [True, i]
-                except:
-                    if i * 2 > len(self.numbers):
-                        return [True, 0]
-                    return [True, i]
-        else:
-            return [False, None]
-
-    def generate_alpha_beta(self, max_depth: int) -> list:
-        """Generates the best move using Alpha-Beta
-
-        Args:
-            max_depth (int): maximum depth
-
-        Returns:
-            list: best move
-        """
-        initial_node = self.game_tree.node_set[0]
-        initial_state = self
-        self.checked_nodes = 0
-        start = time.time()
-
-        result = self.game_tree.alpha_beta(
-            initial_node,initial_state,
-            float("-inf"), float("inf"), max_depth
-        )[1]
-
-        self.execution_time = time.time() - start
-
-        if not result[1] is None:
-            for i in range(len(result[1].numbers)):
-                try:
-                    for j in range(len(result[1].numbers[i])):
-                        if self.numbers[j] != result[1].numbers[i][j]:
-                            return [True, i]
-                except:
-                    if i * 2 > len(self.numbers):
-                        return [True, 0]
-                    return [True, i]
-        else:
-            return [False, None]
-
-
-class Node:
-    def __init__(self, id, row, p1, p2, level, hnf):
-        self.id = id
-        self.row = row
-        self.p1 = p1
-        self.p2 = p2
-        self.level = level
-        self.hnf = hnf
-
-
-class Game_tree:
-    def __init__(self):
-        self.node_set = []
-        self.branch_set = dict()
-
-    def is_terminal(self, numbers: list) -> bool:
+    def is_terminal(self) -> bool:
         """Checks if the state is terminal
-
-        Args:
-            state (GameState): current state
 
         Returns:
             bool: True if the state is terminal, False otherwise
         """
-        return len(numbers) < 2
+        return len(self.numbers) == 1
 
-    def evaluate(self, state: GameState) -> int:
-        """Evaluates the state using a heuristic function
-
-        Args:
-            state (GameState): current state
+    def evaluate(self) -> int:
+        """Evaluates the state
 
         Returns:
             int: score of the state
         """
-        evaluation = 0
-
-
-        for node in self.node_set:
-            if (
-                node.row == state.numbers
-                and node.p1 == state.scores[0]
-                and node.p2 == state.scores[1]
-            ):
-                if node.hnf == 0:
-                    node.hnf=state.scores[0]-state.scores[1]
-                if state.is_maximizing_player:
-                    evaluation = node.hnf if evaluation < node.hnf else evaluation
-                else:
-                    evaluation = node.hnf if evaluation > node.hnf else evaluation
-
-                     
-        return evaluation
-
-    def add_node(self, node: Node):
-        self.node_set.append(node)
-
-    def add_branch(self, beginNode_id, endNode_id):
-        self.branch_set[beginNode_id] = self.branch_set.get(beginNode_id, []) + [
-            endNode_id
-        ]
         
-    def assign_id(self):
-        global node_counter
-        id_new = "N" + str(node_counter)
-        node_counter += 1
-        return id_new
-    
-    def check_duplicate(
-        self,
-        new_node,
-        curr_node,
-        # gen_nodes,
-        id_new,
-        row_new,
-        p1_new,
-        p2_new,
-        level_new,
-        hnf_new,
-    ):
-        same_node_check = False
-        j = 0
-        while (not same_node_check) and (j < len(self.node_set)):
-            if (
-                (self.node_set[j].row == new_node.row)
-                and (self.node_set[j].p1 == new_node.p1)
-                and (self.node_set[j].p2 == new_node.p2)
-                and (self.node_set[j].level == new_node.level)
-                and (self.node_set[j].hnf == new_node.hnf)
-            ):
-                same_node_check = True
-            else:
-                j += 1
-        if not same_node_check:
-            self.add_node(new_node)
-            # gen_nodes.append(Node(id_new, row_new, p1_new, p2_new, level_new, hnf_new))
-            self.add_branch(curr_node.id, id_new)
-        else:
-            self.add_branch(curr_node.id, self.node_set[j].id)
+        return sum([self.scores[0], -self.scores[1]])
 
-
-    def generate_moves(self, node:Node,state:GameState, curr_length):
-        moves = []
-        # placeholder=[]
-        if curr_length > 1:
-            iter_length = curr_length
-            if curr_length % 2 == 1:
-                iter_length -= 1
-            for i in range(0, iter_length, 2):
-                row_new = deepcopy(node.row)
-                number1 = row_new.pop(i + 1)
-                number2 = row_new.pop(i)
-                sum_ = number1 + number2
-                number_new = pairs.get(sum_)
-                row_new.insert(i, number_new)
-                plus_points = 1
-                if number_new == 4 or number_new == 5 or number_new == 6:
-                    plus_points = 2
-                f1 = plus_points
-                if curr_length % 2 == 0:
-                    p1_new = state.scores[0] + f1
-                    p2_new = state.scores[1]
-                else:
-                    p1_new = state.scores[0]
-                    p2_new = state.scores[1] + f1
-                level_new = state.is_maximizing_player != state.is_maximizing_player
-                new_state = GameState(row_new, [p1_new, p2_new], level_new)
-                new_node = Node("N" + str(len(self.node_set) + 1), row_new, p1_new, p2_new, level_new, 0)
-                self.check_duplicate(new_node, node, new_node.id, row_new, p1_new, p2_new, level_new, 0)
-                moves.append([new_node, new_state])
-
-        if curr_length > 1 and curr_length % 2 == 1:
-            row_new = deepcopy(state.numbers)
-            row_new.pop()
-            if (
-                state.is_maximizing_player
-                and state.is_maximizing_player == (state.scores[0] > state.scores[1])
-            ) or (
-                not state.is_maximizing_player
-                and state.is_maximizing_player == (state.scores[0] < state.scores[1])
-            ):
-                p1_new = state.scores[0] - 1
-                p2_new = state.scores[1]
-            else:
-                p1_new = state.scores[0]
-                p2_new = state.scores[1] - 1
-            level_new = state.is_maximizing_player != state.is_maximizing_player
-            new_state = GameState(row_new, [p1_new, p2_new], level_new)
-            # print(new_state.numbers)
-            # print(new_state.scores)
-            new_node = Node("N" + str(len(self.node_set) + 1), row_new, p1_new, p2_new, level_new, 0)
-            self.check_duplicate(new_node, node, new_node.id, row_new, p1_new, p2_new, level_new, 0)
-            moves.append([new_node, new_state])
-    
-        return moves
-
-    def min_max(self, node: Node, state:GameState,depth: int) -> list:
+    def min_max(self, state: "GameState", depth: int) -> list:
         """Min-Max algorithm
 
         Args:
-            node (Node): current node
             state (GameState): current state
             depth (int): current depth
 
         Returns:
             list: (score, best_move)
         """
-        if self.is_terminal(node.row) or depth == 0:
-            return [self.evaluate(state), None]
-        moves=self.generate_moves(node,state, len(state.numbers))
+        if state.is_terminal() or depth == 0:
+            return [state.evaluate(), None]
+        moves = state.get_possible_moves()
         if state.is_maximizing_player:
             max_eval = float("-inf")
             best_move = None
-
+            
             for move in moves:
-                state.checked_nodes += 1 
-                eval, _ = self.min_max(move[0], move[1], depth - 1)
+                self.checked_nodes += 1  # Increment checked nodes count
+                eval, _ = self.min_max(move, depth - 1)
                 if eval > max_eval:
                     max_eval = eval
                     best_move = move
@@ -297,20 +121,19 @@ class Game_tree:
             min_eval = float("inf")
             best_move = None
             for move in moves:
-                state.checked_nodes += 1  
-                eval, _ = self.min_max(move[0], move[1], depth - 1)
+                self.checked_nodes += 1  # Increment checked nodes count
+                eval, _ = self.min_max(move, depth - 1)
                 if eval < min_eval:
                     min_eval = eval
                     best_move = move
             return [min_eval, best_move]
 
     def alpha_beta(
-        self,node:Node, state: GameState, alpha: int, beta: int, depth: int
+        self, state: "GameState", alpha: int, beta: int, depth: int
     ) -> tuple:
         """Alpha-Beta algorithm
 
         Args:
-            node (Node): current node
             state (GameState): current state
             alpha (int):  minimum score that the maximizing player is assured of
             beta (int): maximum score that the minimizing player is assured of
@@ -321,15 +144,15 @@ class Game_tree:
                     score - score of the state
                     best_move - best move
         """
-        if self.is_terminal(node.row) or depth == 0:
-            return [self.evaluate(state), None]
-        moves=self.generate_moves(node,state, len(state.numbers))
+        if state.is_terminal() or depth == 0:
+            return state.evaluate(), None
+        moves = state.get_possible_moves()
         if state.is_maximizing_player:
             max_eval = float("-inf")
             best_move = None
             for move in moves:
-                state.checked_nodes += 1 
-                eval, _ = self.alpha_beta(move[0], move[1], alpha, beta, depth - 1)
+                self.checked_nodes += 1  # Increment checked nodes count
+                eval, _ = self.alpha_beta(move, alpha, beta, depth - 1)
                 if eval > max_eval:
                     max_eval = eval
                     best_move = move
@@ -341,8 +164,8 @@ class Game_tree:
             min_eval = float("inf")
             best_move = None
             for move in moves:
-                state.checked_nodes += 1  
-                eval, _ = self.alpha_beta(move[0], move[1], alpha, beta, depth - 1)
+                self.checked_nodes += 1  # Increment checked nodes count
+                eval, _ = self.alpha_beta(move, alpha, beta, depth - 1)
                 if eval < min_eval:
                     min_eval = eval
                     best_move = move
@@ -351,18 +174,95 @@ class Game_tree:
                     break
             return min_eval, best_move
 
+    def generate_min_max(self, numbers: list, scores: list, max_depth: int) -> list:
+        """Generates the best move using Min-Max
 
-        
-        
-        
-            
+        Args:
+            numbers (list): row of numbers
+            scores (list): scores of the players
+            max_depth (int): maximum depth
 
+        Returns:
+            list: best move
+        """
+        initial_state = GameState(numbers, scores, True)
+        self.checked_nodes = 0  # Reset checked nodes count
+        start_time = time.time()
+        result = self.min_max(initial_state, max_depth)
+        end_time = time.time()
+        self.execution_time = end_time - start_time
+        if result[1] is not None:
+            for i in range(len(result[1].numbers)):
+                try:
+                    for j in range(len(result[1].numbers[i])):
+                        if numbers[j] != result[1].numbers[i][j]:
+                            return [True, i]
+                except:
+                    # print("Exception") # Exception for the last move
+                    # print(result[1].numbers)
+                    # print(numbers)
+                    # print(i)
+                    if i*2 > len(numbers):
+                        return [True, 0]
+                    return [True, i]
+        else:
+            return [False, None]
 
-   
+    def generate_alpha_beta(self, numbers: list, scores: list, max_depth: int) -> list:
+        """Generates the best move using Alpha-Beta
+
+        Args:
+            numbers (list): row of numbers
+            scores (list): scores of the players
+            max_depth (int): maximum depth
+
+        Returns:
+            list: best move
+        """
+        initial_state = GameState(numbers, scores, True)
+        self.checked_nodes = 0  # Reset checked nodes count
+        start_time = time.time()
+        result = self.alpha_beta(initial_state, float("-inf"), float("inf"), max_depth)
+        end_time = time.time()
+        self.execution_time = end_time - start_time
+        #print(result[1].numbers) for debugging
+        #print(numbers)
+        if result[1] is not None:
+            for i in range(len(result[1].numbers)):
+                try:
+                    print(result[1].numbers)
+                    print(numbers)
+                    for j in range(len(result[1].numbers[i])):
+                        print(result[1].numbers[i][j])
+                        print(numbers[i][j])
+                        if numbers[j] != result[1].numbers[i][j]:
+                            print(result[1].numbers[i][j])
+                            print(numbers[i][j])
+                            return [True, i]
+                except:
+                    if i*2 > len(numbers):
+                        return [True, 0]
+                    return [True, i]
+        else:
+            return [False, None]
+
 
 class Game:
     def __init__(self):
-        self.pairs = pairs
+        self.pairs = {
+            1: 1,
+            2: 2,
+            3: 3,
+            4: 4,
+            5: 5,
+            6: 6,
+            7: 1,
+            8: 2,
+            9: 3,
+            10: 4,
+            11: 5,
+            12: 6,
+        }
         self.alpha_beta = False
         self.checked = 0
         self.root = Tk()
@@ -473,7 +373,7 @@ class Game:
         if not row_length.isdigit():
             pass
         else:
-            new_array = [random.randint(1, 6) for _ in range(int(row_length))] # [random.randint(1, 6) for _ in range(int(row_length))] #[2,6,2,2,3]#[2,6,6,2,3][2,5,5,2,3,1,6,6,2,5,1,3,3,2,3] arrays for testing
+            new_array =[random.randint(1, 6) for _ in range(int(row_length))] #[2,6,2,2,3]#[2,6,6,2,3][2,5,5,2,3,1,6,6,2,5,1,3,3,2,3] arrays for testing
             self.numberRow = new_array
             self.lbl_row.config(text=" ".join(map(str, self.numberRow)))
             self.lbl_row.place(relx=0.5, rely=0.4, anchor=CENTER)
@@ -557,22 +457,33 @@ class Game:
         game_state = GameState(
             self.numberRow, [self.humanScore, self.computerScore], True
         )
-        # print(game_state.numbers)
-        # print(game_state.scores)
+        print(game_state.numbers)
+        print(game_state.scores)
+        scores = [self.humanScore, self.computerScore]
         if not self.alpha_beta:
-            result = game_state.generate_min_max(2)  
+            result = game_state.generate_min_max(self.numberRow, scores, 2)
+            if hasattr(game_state, "checked_nodes"):
+                print("Number of checked nodes:", game_state.checked_nodes)
+                print("Execution time:", game_state.execution_time)
+                print("Result:", result)
+            if result[0]:
+                self.computer_turn_sum(result[1]*2)
+            else:
+                self.computer_turn_erase()
         else:
-            result = game_state.generate_alpha_beta(2) 
-        if hasattr(game_state, "checked_nodes"):
-            print("Number of checked nodes:", game_state.checked_nodes)
-            print("Execution time:", game_state.execution_time)
-            print("Result:", result)
-        if result[0]:
-            self.computer_turn_sum(result[1] * 2)
-        else:
-            self.computer_turn_erase()
+            result = game_state.generate_alpha_beta(self.numberRow, scores, 2)
+            if hasattr(game_state, "checked_nodes"):
+                print("Number of checked nodes:", game_state.checked_nodes)
+                print("Execution time:", game_state.execution_time)
+                print("Result:", result)
+            if result[0]:
+                self.computer_turn_sum(result[1]*2)
+            else:
+                self.computer_turn_erase()
 
     def computer_turn_sum(self, index=None):
+        
+        
 
         length = len(self.numberRow)
         if index is None:
